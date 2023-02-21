@@ -1,43 +1,92 @@
 from pytube import YouTube
+import sys
+import moviepy.editor as mp
+from os import remove
 
 class Video:
-    def __init__(self, link, mode, resolution, save_location):
+    def __init__(self, link, mode, resolution, save_location, audio):
         self.link = link
         self.mode = mode
         self.resolution = resolution
         self.save_location = save_location
+        self.audio = audio
+        self.title = ''
     
     def __str__(self):
         return f"Link: {self.link}, Mode: {self.mode}, Resolution: {self.resolution}"
-
+    
 def download(video):
-    yt = YouTube(video.link)
-    ys = ''
-    stream_info = []
-    if video.mode == "Audio":
-        stream_info = yt.streams.filter(only_audio=True)
-        stream_info = stream_info.order_by(attribute_name="abr")
-        stream_info = stream_info.last()
-        print("Downloading...")
-        stream_info.download(video.save_location)
-        print("Download finished!")
-    else:
-        stream_info = yt.streams.filter(only_video=True)
+
+    try:
+        yt = YouTube(video.link)
+        video.title = yt.title
+        
+        stream_info = []
+        if video.audio == "Yes":
+            stream_info = yt.streams.filter(only_audio=True, mime_type="audio/mp4")
+            stream_info = stream_info.order_by(attribute_name="abr")
+            stream_info = stream_info.first()
+            print("Downloading audio...")
+            file = video.title + " - Audio" + ".mp4"
+            stream_info.download(output_path=video.save_location, filename=file)
+            print("Download finished.")
+
+        if video.mode == "Video":
+            stream_info = yt.streams.filter(only_video=True, mime_type="video/mp4", resolution=video.resolution)
+            stream_info = stream_info.first()
+            print("Downloading video...")
+            file = video.title + " - Video" + ".mp4"
+            stream_info.download(output_path=video.save_location, filename=file)
+            print("Download finished.")
+    except:
+        sys.exit("Download failed. Please try again.")
+        
+
+def mix(video):
+    try:
+        print("Mixing...")
+        video_name = video.save_location + "/" + video.title + " - Video" + ".mp4"
+        clip = mp.VideoFileClip(video_name)
+        audio_name = video.save_location + "/" + video.title + " - Audio" + ".mp4"
+        audio = mp.AudioFileClip(audio_name)
+        final = clip.set_audio(audio)
+
+        final_name = video.save_location + "/" + video.title + ".mp4"
+        final.write_videofile(final_name)
+        remove(video_name)
+        remove(audio_name)
+
+        print("Video is ready")
+    except:
+        sys.exit("Could not mix files. Please try again.")
+
 
 
 def main():
     link = input("Video link: ")
     mode = input("Audio / Video: ")
     resolution = ''
+    audio = ''
+    mix_video = "No"
 
     if mode == "Video":
-        resolution = input("Video resolution to download: ")
+        resolution = input("Video resolution to download(max 1080p): ")
+        audio = input("Download audio too?(Yes / No): ")
+    
+    if mode == "Audio":
+        audio = "Yes"
+
 
     save_location = input("Input location to save video: ")
 
-    video = Video(link, mode, resolution, save_location)
+    video = Video(link, mode, resolution, save_location, audio)
     download(video)
+
+    if video.audio == "Yes" and video.mode == "Video":
+        mix_video = input("Do you want to mix audio and video?(Yes / No): ")
     
+    if mix_video == "Yes":
+        mix(video)
 
 if __name__ == "__main__":
     main()
