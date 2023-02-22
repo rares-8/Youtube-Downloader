@@ -2,6 +2,8 @@ from pytube import YouTube
 import sys
 import moviepy.editor as mp
 from os import remove
+import validators
+import requests
 
 class Video:
     def __init__(self, link, mode, resolution, save_location, audio):
@@ -11,7 +13,53 @@ class Video:
         self.save_location = save_location
         self.audio = audio
         self.title = ''
+
+    @property
+    def mode(self):
+        return self._mode
+    @mode.setter
+    def mode(self, mode):
+        if mode != "Video" and mode != "Audio":
+            raise ValueError("Invalid input: select Audio or Video.")
+        self._mode = mode
+
+    @property
+    def resolution(self):
+        return self._resolution
+    @resolution.setter
+    def resolution(self, resolution):
+        valid = ["144p", "240p", "360p", "480p", "720p", "1080p"]
+        if resolution not in valid:
+            raise ValueError("Invalid resolution. Supported resolutions are 144p, 240p, 360p, 480p, 720p, 1080p.")
+        self._resolution = resolution
+
+    @property
+    def audio(self):
+        return self._audio
+    @audio.setter
+    def audio(self, audio):
+        if audio != "Yes" and audio != "No":
+            raise ValueError("Invalid input.")
+        self._audio = audio
     
+    @property
+    def link(self):
+        return self._link
+    @link.setter
+    def link(self, link):
+        if validators.url(link) != True:
+            raise ValueError("Invalid link.")
+        if "www.youtube.com" not in link:
+            raise ValueError("Invalid link.")
+
+        r = requests.get(link)
+        pattern = '"playabilityStatus":{"status":"ERROR"'
+
+        if pattern in r.text:
+            raise ValueError("Video is unavailable")
+        self._link = link
+
+
     def __str__(self):
         return f"Link: {self.link}, Mode: {self.mode}, Resolution: {self.resolution}"
     
@@ -39,12 +87,12 @@ def download(video):
             stream_info.download(output_path=video.save_location, filename=file)
             print("Download finished.")
     except:
-        sys.exit("Download failed. Please try again.")
+        sys.exit("Download failed. Please try again")
         
 
 def mix(video):
     try:
-        print("Mixing...")
+        print("Mixing...This might take a while")
         video_name = video.save_location + "/" + video.title + " - Video" + ".mp4"
         clip = mp.VideoFileClip(video_name)
         audio_name = video.save_location + "/" + video.title + " - Audio" + ".mp4"
@@ -65,8 +113,8 @@ def mix(video):
 def main():
     link = input("Video link: ")
     mode = input("Audio / Video: ")
-    resolution = ''
-    audio = ''
+    resolution = "144p"
+    audio = "No"
     mix_video = "No"
 
     if mode == "Video":
