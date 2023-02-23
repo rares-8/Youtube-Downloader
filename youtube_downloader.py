@@ -1,7 +1,7 @@
 from pytube import YouTube
 import sys
 import moviepy.editor as mp
-from os import remove
+from os import remove, path
 import validators
 import requests
 
@@ -18,46 +18,55 @@ class Video:
     def mode(self):
         return self._mode
     @mode.setter
-    def mode(self, mode):
-        if mode != "Video" and mode != "Audio":
+    def mode(self, inp):
+        if inp != "Video" and inp != "Audio":
             raise ValueError("Invalid input: select Audio or Video.")
-        self._mode = mode
+        self._mode = inp
 
     @property
     def resolution(self):
         return self._resolution
     @resolution.setter
-    def resolution(self, resolution):
+    def resolution(self, res):
         valid = ["144p", "240p", "360p", "480p", "720p", "1080p"]
-        if resolution not in valid:
+        if res not in valid:
             raise ValueError("Invalid resolution. Supported resolutions are 144p, 240p, 360p, 480p, 720p, 1080p.")
-        self._resolution = resolution
+        self._resolution = res
 
     @property
     def audio(self):
         return self._audio
     @audio.setter
-    def audio(self, audio):
-        if audio != "Yes" and audio != "No":
+    def audio(self, inp):
+        if inp != "Yes" and inp != "No":
             raise ValueError("Invalid input.")
-        self._audio = audio
+        self._audio = inp
     
     @property
     def link(self):
         return self._link
     @link.setter
-    def link(self, link):
-        if validators.url(link) != True:
+    def link(self, url):
+        if validators.url(url) != True:
             raise ValueError("Invalid link.")
-        if "www.youtube.com" not in link:
+        if "www.youtube.com" not in url:
             raise ValueError("Invalid link.")
 
-        r = requests.get(link)
+        r = requests.get(url)
         pattern = '"playabilityStatus":{"status":"ERROR"'
 
         if pattern in r.text:
             raise ValueError("Video is unavailable")
-        self._link = link
+        self._link = url
+
+    @property
+    def save_location(self):
+        return self._save_location
+    @save_location.setter
+    def save_location(self, save_path):
+        if not path.exists(save_path):
+            raise ValueError("Path does not exist")
+        self._save_location = save_path
 
 
     def __str__(self):
